@@ -1,0 +1,107 @@
+const int redPin = 2;     // PB2
+const int greenPin = 1;   // PB5
+const int buttonPin = 0;  // PB0
+
+int mode = 0;
+bool lastButtonState = HIGH;
+unsigned long buttonPressTime = 0;
+
+void setup() {
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+}
+
+void loop() {
+  bool buttonState = digitalRead(buttonPin);
+
+  // Button Press Detection
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    buttonPressTime = millis();
+    delay(100); // Debounce
+  }
+
+  // Mode Change (short press)
+  if (buttonState == HIGH && lastButtonState == LOW) {
+    if (millis() - buttonPressTime < 2000) {
+      mode = (mode + 1) % 7; // 7 modes including fade
+    }
+    delay(100); // Debounce
+  }
+
+  // Hold-to-reset
+  if (buttonState == LOW && (millis() - buttonPressTime >= 2000)) {
+    mode = 0;
+  }
+
+  lastButtonState = buttonState;
+
+  // Execute selected mode
+  switch (mode) {
+    case 0: // All OFF
+      digitalWrite(redPin, LOW);
+      digitalWrite(greenPin, LOW);
+      break;
+
+    case 1: // Red Blink
+      digitalWrite(redPin, HIGH);
+      digitalWrite(greenPin, LOW);
+      delay(50);
+      digitalWrite(redPin, LOW);
+      delay(50);
+      break;
+
+    case 2: // Green Blink
+      digitalWrite(redPin, LOW);
+      digitalWrite(greenPin, HIGH);
+      delay(50);
+      digitalWrite(greenPin, LOW);
+      delay(50);
+      break;
+
+    case 3: // Alternate Red-Green
+      digitalWrite(redPin, HIGH);
+      digitalWrite(greenPin, LOW);
+      delay(70);
+      digitalWrite(redPin, LOW);
+      digitalWrite(greenPin, HIGH);
+      delay(70);
+      digitalWrite(greenPin, LOW);
+      break;
+
+    case 4: // Both Flash Together
+      digitalWrite(redPin, HIGH);
+      digitalWrite(greenPin, HIGH);
+      delay(100);
+      digitalWrite(redPin, LOW);
+      digitalWrite(greenPin, LOW);
+      delay(100);
+      break;
+
+    case 5: // Red fast, Green slow
+      digitalWrite(redPin, HIGH);
+      delay(30);
+      digitalWrite(redPin, LOW);
+      static unsigned long lastGreenToggle = 0;
+      static bool greenState = false;
+      if (millis() - lastGreenToggle > 200) {
+        greenState = !greenState;
+        digitalWrite(greenPin, greenState);
+        lastGreenToggle = millis();
+      }
+      break;
+
+    case 6: // Fade in/out Red and Green
+      for (int i = 0; i < 255; i += 5) {
+        analogWrite(redPin, i);
+        analogWrite(greenPin, 255 - i);
+        delay(10);
+      }
+      for (int i = 255; i > 0; i -= 5) {
+        analogWrite(redPin, i);
+        analogWrite(greenPin, 255 - i);
+        delay(10);
+      }
+      break;
+  }
+}
